@@ -1,5 +1,5 @@
 timg Screenshot_2026_0220_173156.png
-echo "digson toolset 0.6"
+echo "digson toolset 0.7"
 echo "Build give(chmod) command"
 cd give
 gcc source.c -o give -lm -lcurl
@@ -23,3 +23,7 @@ cd ..
 echo "Build get(wget curl) command"
 cd get
 gcc source.c -o get -lm -lcurl
+cd ..
+echo "Build come(elinks/ssh) command"
+cd come
+gcc source.c -o come
