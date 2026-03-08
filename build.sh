@@ -23,7 +23,3 @@ cd ..
 echo "Build get(wget curl) command"
 cd get
 gcc source.c -o get -lm -lcurl -lssh -D LIBSSH_VERSION_MAJOR=0 -D LIBSSH_VERSION_MINOR=9
-cd ..
-echo "Build come(elinks/ssh) command"
-cd come
-gcc source.c -o come -lm -lcurl -lssh -D LIBSSH_VERSION_MAJOR=0 -D LIBSSH_VERSION_MINOR=9
