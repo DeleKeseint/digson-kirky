@@ -1,3 +1,5 @@
+timg Screenshot_2026_0220_173156.png
+echo "digson toolset 0.4"
 echo "Build give(chmod) command"
 cd give
 gcc source.c -o give
@@ -9,3 +11,7 @@ cd ..
 echo "Build have command"
 cd have
 gcc source.c -o have
+cd ..
+echo "Build say(echo) command"
+cd say
+gcc source.c -o say
