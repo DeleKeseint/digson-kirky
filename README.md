@@ -1,2 +1,5 @@
 # digson-kirky
 digson Tool set(Make a toolset based on it to be published on tl)
+
+# How to mutate
+Carried out 'sh build.sh'(We don't have Makefile here)
