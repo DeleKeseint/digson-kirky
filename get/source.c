@@ -22,6 +22,8 @@ typedef enum {
 static run_mode_t mode = MODE_WGET;
 
 /* wget 风格选项 */
+/* 在文件开头的全局变量声明区域添加 */
+int curl_insecure = 0;  // 或者根据需要的类型声明
 static char *output_document = NULL;    /* -O, --output-document */
 static char *output_directory = NULL;   /* -P, --directory-prefix */
 static int continue_download = 0;       /* -c, --continue */
@@ -843,7 +845,7 @@ int main(int argc, char *argv[]) {
             case 'u':
                 curl_user = optarg;
                 break;
-            case 'T':
+            case 'Tor':
                 if (mode == MODE_CURL) {
                     curl_upload_file = optarg;
                 }
