@@ -18,6 +18,88 @@
 #include <netinet/in.h>
 #include <libssh/libssh.h>
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <libssh/libssh.h>
+#include <netdb.h>
+#include <arpa/inet.h>
+
+// ========== 兼容性修复 ==========
+// 为旧版本 libssh 实现缺失的函数
+
+// 替代 ssh_get_hostname() 函数
+static const char *compat_ssh_get_hostname(ssh_session session) {
+    static char hostname[256];
+    const char *host = NULL;
+    
+    // 尝试从会话获取主机名
+    host = ssh_get_host(session);
+    if (host) {
+        return host;
+    }
+    
+    // 如果获取不到，尝试从套接字获取
+    int sock = ssh_get_fd(session);
+    if (sock >= 0) {
+        struct sockaddr_in addr;
+        socklen_t len = sizeof(addr);
+        if (getpeername(sock, (struct sockaddr*)&addr, &len) == 0) {
+            struct hostent *he = gethostbyaddr((const char*)&addr.sin_addr, 
+                                              sizeof(addr.sin_addr), AF_INET);
+            if (he) {
+                return he->h_name;
+            }
+        }
+    }
+    
+    return "unknown-host";
+}
+
+// 替代 ssh_get_remote_hostname() 函数
+static const char *compat_ssh_get_remote_hostname(ssh_session session) {
+    return compat_ssh_get_hostname(session);
+}
+
+// 替代 ssh_get_remote_ipaddr() 函数
+static const char *compat_ssh_get_remote_ipaddr(ssh_session session) {
+    static char ip[INET6_ADDRSTRLEN];
+    int sock = ssh_get_fd(session);
+    
+    if (sock >= 0) {
+        struct sockaddr_in addr;
+        socklen_t len = sizeof(addr);
+        if (getpeername(sock, (struct sockaddr*)&addr, &len) == 0) {
+            inet_ntop(AF_INET, &addr.sin_addr, ip, sizeof(ip));
+            return ip;
+        }
+    }
+    
+    return "0.0.0.0";
+}
+
+// 替代 ssh_get_remote_username() 函数
+static const char *compat_ssh_get_remote_username(ssh_session session) {
+    // 从会话获取用户名
+    const char *user = ssh_get_user(session);
+    if (user && strlen(user) > 0) {
+        return user;
+    }
+    
+    // 备用方案
+    user = getenv("USER");
+    if (user) return user;
+    
+    return "unknown-user";
+}
+
+// 使用宏替换所有调用
+#define ssh_get_remote_hostname(session) compat_ssh_get_remote_hostname(session)
+#define ssh_get_remote_ipaddr(session) compat_ssh_get_remote_ipaddr(session)
+#define ssh_get_remote_username(session) compat_ssh_get_remote_username(session)
+#define ssh_get_hostname(session) compat_ssh_get_hostname(session)
+
+
 #define PROGRAM_NAME "come"
 #define VERSION "1.0"
 #define DEFAULT_SSH_PORT 8022
@@ -35,27 +117,6 @@ typedef enum {
     OPT_ELINKS,     /* 默认：elinks 风格选项 */
     OPT_SSH         /* --wip-opt：ssh 风格选项 */
 } opt_style_t;
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <libssh/libssh.h>
-
-// 兼容性定义
-#ifndef HAVE_SSH_GET_REMOTE_HOSTNAME
-// 为旧版本 libssh 定义替代函数
-const char *ssh_get_hostname_compat(ssh_session session) {
-    return ssh_get_hostname(session);
-}
-
-const char *ssh_get_username_compat(ssh_session session) {
-    return ssh_userauth_list(session, NULL);
-}
-
-#define ssh_get_remote_hostname ssh_get_hostname_compat
-#define ssh_get_remote_ipaddr ssh_get_hostname_compat
-#define ssh_get_remote_username ssh_get_username_compat
-#endif
 
 static opt_style_t opt_style = OPT_ELINKS;
 
