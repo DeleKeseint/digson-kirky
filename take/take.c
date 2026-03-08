@@ -10,6 +10,7 @@
 #include <dirent.h>
 #include <getopt.h>
 #include <limits.h>
+#include <utime.h>
 
 #define PROGRAM_NAME "take"
 #define VERSION "1.0"
