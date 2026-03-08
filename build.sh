@@ -4,4 +4,4 @@ gcc source.c -o give
 cd ..
 echo "Build take(mv) command"
 cd take
-gcc source.c -o take
+gcc take.c -o take
