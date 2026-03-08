@@ -1,5 +1,5 @@
 timg Screenshot_2026_0220_173156.png
-echo "digson toolset 0.4"
+echo "digson toolset 0.5"
 echo "Build give(chmod) command"
 cd give
 gcc source.c -o give
@@ -15,3 +15,7 @@ cd ..
 echo "Build say(echo) command"
 cd say
 gcc source.c -o say
+cd ..
+echo "Build see(ls) command"
+cd see
+gcc source.c -o see
