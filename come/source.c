@@ -36,6 +36,25 @@ typedef enum {
     OPT_SSH         /* --wip-opt：ssh 风格选项 */
 } opt_style_t;
 
+// 在文件开头的包含语句后添加以下函数声明
+#ifndef HAVE_SSH_GET_REMOTE_HOSTNAME
+// 定义替代函数
+static const char *ssh_get_remote_hostname(ssh_session session) {
+    return ssh_get_hostname(session);
+}
+
+static const char *ssh_get_remote_ipaddr(ssh_session session) {
+    // 简单的替代，返回主机名
+    return ssh_get_hostname(session);
+}
+
+static const char *ssh_get_remote_username(ssh_session session) {
+    // 返回当前会话的用户名
+    return ssh_get_username(session);
+}
+#endif
+
+
 static opt_style_t opt_style = OPT_ELINKS;
 
 /* elinks 选项 */
