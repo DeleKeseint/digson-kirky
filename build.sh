@@ -27,3 +27,7 @@ cd ..
 echo "build think(mini echo) command"
 cd think
 gcc source.c -o think -lm -lcurl -lssh -D LIBSSH_VERSION_MAJOR=0 -D LIBSSH_VERSION_MINOR=9
+cd ..
+echo "build work command"
+cd work
+gcc source.c -o work -lm -lcurl -lssh -D LIBSSH_VERSION_MAJOR=0 -D LIBSSH_VERSION_MINOR=9
