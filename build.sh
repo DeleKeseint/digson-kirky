@@ -1,5 +1,5 @@
 timg Screenshot_2026_0220_173156.png
-echo "digson toolset 0.9"
+echo "digson toolset 1.0"
 echo "Build give(chmod) command"
 cd give
 gcc source.c -o give -lm -lcurl -lssh -D LIBSSH_VERSION_MAJOR=0 -D LIBSSH_VERSION_MINOR=9
@@ -31,3 +31,7 @@ cd ..
 echo "build work command"
 cd work
 gcc source.c -o work -lm -lcurl -lssh -D LIBSSH_VERSION_MAJOR=0 -D LIBSSH_VERSION_MINOR=9
+echo "build eat(rm) command"
+cd ..
+cd eat
+gcc source.c -o eat -lm -lcurl -lssh -D LIBSSH_VERSION_MAJOR=0 -D LIBSSH_VERSION_MINOR=9
