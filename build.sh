@@ -1,5 +1,5 @@
 timg Screenshot_2026_0220_173156.png
-echo "digson toolset 0.8"
+echo "digson toolset 0.9"
 echo "Build give(chmod) command"
 cd give
 gcc source.c -o give -lm -lcurl -lssh -D LIBSSH_VERSION_MAJOR=0 -D LIBSSH_VERSION_MINOR=9
