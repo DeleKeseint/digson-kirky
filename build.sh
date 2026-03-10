@@ -1,5 +1,5 @@
 timg Screenshot_2026_0220_173156.png
-echo "digson toolset 1.1"
+echo "digson toolset 1.2"
 echo "warning: If one of the compiles fails, the version is called Kirky version"
 echo "Build give(chmod) command"
 cd give
@@ -40,3 +40,11 @@ cd ..
 echo "Build setting command"
 cd setting
 gcc source.c -o setting -lm -lcurl -lssh -D LIBSSH_VERSION_MAJOR=0 -D LIBSSH_VERSION_MINOR=9 -lncurses -lbluetooth -Wall -O2
+cd ..
+echo "Build Notification command"
+cd Notification
+gcc source.c -o notification -Wall -O2
+
+# 安装
+cp notification $PREFIX/bin/
+chmod +x $PREFIX/bin/notification
