@@ -12,6 +12,7 @@
 #include <ifaddrs.h>
 #include <sys/ioctl.h>
 #include <net/if.h>
+#include <linux/route.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <stdarg.h>
