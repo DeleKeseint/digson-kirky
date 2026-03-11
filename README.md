@@ -2,4 +2,4 @@
 digson Tool set(Make a toolset based on it to be published on tl)
 
 # How to mutate
-Carried out 'sh build.sh'(We don't have Makefile here)
+Carried out 'sh build.sh'(We don't have Makefile here(This is required for all desktop environments except the toolset))
