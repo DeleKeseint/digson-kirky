@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Minecraft Web - 草方块修复版</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: system-ui, sans-serif; background: #020617; overflow: hidden; touch-action: none; user-select: none; }
+        .ui-panel { background: rgba(2, 6, 23, 0.9); border: 1px solid rgba(51, 65, 85, 0.6); border-radius: 4px; color: #f8fafc; font-size: 11px; font-family: monospace; }
+        .slot { width: 44px; height: 44px; background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(71, 85, 105, 0.5); border-radius: 2px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .slot.active { border-color: #e2e8f0; background: rgba(30, 41, 59, 0.95); }
+        .control-btn { width: 56px; height: 56px; border-radius: 50%; background: rgba(2, 6, 23, 0.7); border: 1px solid rgba(71, 85, 105, 0.4); color: #e2e8f0; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+        .stick { position: absolute; width: 100px; height: 100px; border-radius: 50%; background: rgba(2, 6, 23, 0.6); border: 1px solid rgba(71, 85, 105, 0.3); touch-action: none; z-index: 30; }
+        .knob { position: absolute; width: 36px; height: 36px; border-radius: 50%; background: rgba(226, 232, 240, 0.95); top: 50%; left: 50%; transform: translate(-50%,-50%); }
+        #loading { position: fixed; inset: 0; background: #020617; z-index: 10000; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #e2e8f0; }
+        .progress-track { width: 280px; height: 3px; background: rgba(30, 41, 59, 0.8); border-radius: 2px; overflow: hidden; margin-top: 16px; }
+        .progress-bar { height: 100%; background: #5D8C3A; width: 0%; transition: width 0.3s; }
+        .crosshair { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 16px; height: 16px; pointer-events: none; z-index: 50; }
+        .crosshair::before, .crosshair::after { content: ''; position: absolute; background: rgba(255,255,255,0.9); }
+        .crosshair::before { width: 16px; height: 2px; top: 7px; left: 0; }
+        .crosshair::after { width: 2px; height: 16px; top: 0; left: 7px; }
+        .hotbar-container { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); display: flex; gap: 4px; padding: 6px; background: rgba(2, 6, 23, 0.85); border-radius: 4px; z-index: 20; }
+    </style>
+</head>
+<body>
+<div id="loading">
+    <div style="font-size: 20px; font-weight: 600;">Minecraft Web</div>
+    <div style="color: #64748b; margin-top: 8px; font-size: 13px;">加载纹理中...</div>
+    <div class="progress-track"><div class="progress-bar" id="progress-fill"></div></div>
+    <div id="loading-text" style="margin-top: 8px; color: #475569; font-size: 11px;">0 / 0</div>
+</div>
+
+<div id="game" style="position: fixed; inset: 0; display: flex; flex-direction: column;">
+    <div style="height: 36px; background: rgba(2,6,23,0.95); border-bottom: 1px solid rgba(51,65,85,0.5); display: flex; align-items: center; justify-content: space-between; padding: 0 12px; z-index: 20;">
+        <div style="display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; color: #e2e8f0;">
+            <div style="width: 16px; height: 16px; background: #5D8C3A; border-radius: 2px;"></div>
+            Minecraft 草方块修复版
+        </div>
+        <div style="display: flex; gap: 8px;">
+            <button onclick="toggleGameMode()" id="mode-btn" style="background: rgba(30,41,59,0.8); border: 1px solid rgba(51,65,85,0.5); color: #e2e8f0; padding: 4px 10px; border-radius: 2px; font-size: 11px; cursor: pointer;">创造</button>
+            <button onclick="spawnMob()" style="background: rgba(30,41,59,0.8); border: 1px solid rgba(51,65,85,0.5); color: #e2e8f0; padding: 4px 10px; border-radius: 2px; font-size: 11px; cursor: pointer;">生物</button>
+        </div>
+    </div>
+
+    <div id="viewport" style="flex: 1; position: relative; overflow: hidden; background: #87CEEB;">
+        <canvas id="gl"></canvas>
+        <div class="crosshair"></div>
+        
+        <div class="ui-panel" style="position: absolute; top: 10px; right: 10px; padding: 8px 12px; min-width: 160px;">
+            <div style="display: flex; justify-content: space-between;"><span style="color: #94a3b8;">XYZ:</span><span id="d-xyz" style="color: #5D8C3A;">0,0,0</span></div>
+            <div style="display: flex; justify-content: space-between;"><span style="color: #94a3b8;">FPS:</span><span id="d-fps" style="color: #e2e8f0;">0</span></div>
+            <div style="display: flex; justify-content: space-between;"><span style="color: #64748b;">区块:</span><span id="s-chunk" style="color: #cbd5e1;">0</span></div>
+            <div style="display: flex; justify-content: space-between;"><span style="color: #64748b;">生物:</span><span id="s-mobs" style="color: #fbbf24;">0</span></div>
+        </div>
+
+        <div id="left-stick" class="stick" style="left: 24px; bottom: 120px;"><div class="knob" id="knob-left"></div></div>
+        <div id="right-stick" class="stick" style="right: 24px; bottom: 120px; border-style: dashed; opacity: 0.6;"></div>
+        
+        <div style="position: absolute; bottom: 240px; right: 24px;"><div id="btn-jump" class="control-btn">▲</div></div>
+        <div style="position: absolute; bottom: 120px; right: 140px;"><div id="btn-break" class="control-btn">⛏</div></div>
+        <div style="position: absolute; bottom: 120px; right: 24px;"><div id="btn-place" class="control-btn">⬛</div></div>
+
+        <div class="hotbar-container" id="hotbar"></div>
+    </div>
+</div>
+
+<script>
+const TEXTURE_SOURCES = [
+    'https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.8/assets/minecraft/textures/blocks/',
+    'https://cdn.jsdelivr.net/gh/InventivetalentDev/minecraft-assets@1.8/assets/minecraft/textures/blocks/',
+];
+
+const textureCache = new Map();
+const failedTextures = new Set();
+let loadedCount = 0, totalTextures = 0;
+
+function updateProgress() {
+    const pct = totalTextures ? Math.round(loadedCount/totalTextures*100) : 0;
+    document.getElementById('progress-fill').style.width = pct + '%';
+    document.getElementById('loading-text').textContent = `${loadedCount}/${totalTextures}`;
+}
+
+// 关键修复：单独处理每个纹理的生成，避免条件判断错误
+function createTexture(name) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 16;
+    canvas.height = 16;
+    const ctx = canvas.getContext('2d');
+    
+    // 清空画布
+    ctx.clearRect(0, 0, 16, 16);
+    
+    // 根据具体纹理名称精确生成
+    switch(name) {
+        case 'grass_top':
+            // 纯绿色草地顶部
+            ctx.fillStyle = '#5D8C3A';
+            ctx.fillRect(0, 0, 16, 16);
+            // 添加深浅不一的绿色斑点模拟草
+            for (let i = 0; i < 32; i++) {
+                const shade = Math.random();
+                if (shade < 0.33) ctx.fillStyle = 'rgba(80, 140, 50, 0.5)';
+                else if (shade < 0.66) ctx.fillStyle = 'rgba(100, 170, 60, 0.4)';
+                else ctx.fillStyle = 'rgba(70, 120, 40, 0.6)';
+                ctx.fillRect(Math.floor(Math.random() * 16), Math.floor(Math.random() * 16), 1, 1);
+            }
+            break;
+            
+        case 'grass_side':
+            // 草侧面 - 泥土底色上方有草边
+            ctx.fillStyle = '#8B5A2B'; // 泥土色
+            ctx.fillRect(0, 0, 16, 16);
+            // 泥土纹理
+            for (let i = 0; i < 20; i++) {
+                ctx.fillStyle = `rgba(${100 + Math.random() * 20}, ${60 + Math.random() * 15}, ${30 + Math.random() * 10}, 0.3)`;
+                ctx.fillRect(Math.floor(Math.random() * 16), 4 + Math.floor(Math.random() * 12), 1, 1);
+            }
+            // 顶部草边（2-4像素高）
+            for (let x = 0; x < 16; x++) {
+                const grassHeight = 2 + Math.floor(Math.random() * 3);
+                // 草边颜色渐变
+                for (let y = 0; y < grassHeight; y++) {
+                    const greenness = 1 - (y / grassHeight) * 0.3;
+                    ctx.fillStyle = `rgba(${93 * greenness}, ${140 * greenness}, ${58 * greenness}, 1)`;
+                    ctx.fillRect(x, y, 1, 1);
+                }
+                // 随机草叶伸出
+                if (Math.random() < 0.2 && grassHeight < 4) {
+                    ctx.fillStyle = 'rgba(100, 160, 60, 0.9)';
+                    ctx.fillRect(x, grassHeight, 1, 1);
+                }
+            }
+            break;
+            
+        case 'dirt':
+            ctx.fillStyle = '#8B5A2B';
+            ctx.fillRect(0, 0, 16, 16);
+            for (let i = 0; i < 30; i++) {
+                ctx.fillStyle = `rgba(${100 + Math.random() * 20}, ${60 + Math.random() * 15}, ${30 + Math.random() * 10}, 0.4)`;
+                ctx.fillRect(Math.floor(Math.random() * 16), Math.floor(Math.random() * 16), 1, 1);
+            }
+            break;
+            
+        case 'stone':
+            ctx.fillStyle = '#808080';
+            ctx.fillRect(0, 0, 16, 16);
+            for (let i = 0; i < 40; i++) {
+                const isLight = Math.random() > 0.5;
+                ctx.fillStyle = isLight ? 'rgba(200, 200, 200, 0.3)' : 'rgba(60, 60, 60, 0.4)';
+                ctx.fillRect(Math.floor(Math.random() * 16), Math.floor(Math.random() * 16), 1, 1);
+            }
+            break;
+            
+        case 'cobblestone':
+            ctx.fillStyle = '#707070';
+            ctx.fillRect(0, 0, 16, 16);
+            // 石块图案
+            ctx.strokeStyle = 'rgba(50, 50, 50, 0.4)';
+            ctx.lineWidth = 1;
+            for (let y = 0; y < 16; y += 4) {
+                for (let x = 0; x < 16; x += 4) {
+                    if (Math.random() > 0.3) {
+                        ctx.strokeRect(x, y, 4, 4);
+                    }
+                }
+            }
+            break;
+            
+        case 'planks_oak':
+            ctx.fillStyle = '#C19A6B';
+            ctx.fillRect(0, 0, 16, 16);
+            ctx.strokeStyle = 'rgba(139, 90, 43, 0.5)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i < 4; i++) {
+                const y = i * 4 + 2;
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                for (let x = 0; x <= 16; x += 2) {
+                    ctx.lineTo(x, y + Math.sin(x * 0.5) * 0.5);
+                }
+                ctx.stroke();
+            }
+            break;
+            
+        case 'bedrock':
+            ctx.fillStyle = '#333333';
+            ctx.fillRect(0, 0, 16, 16);
+            for (let i = 0; i < 50; i++) {
+                ctx.fillStyle = `rgba(${20 + Math.random() * 30}, ${20 + Math.random() * 30}, ${20 + Math.random() * 30}, 0.6)`;
+                ctx.fillRect(Math.floor(Math.random() * 16), Math.floor(Math.random() * 16), 1, 1);
+            }
+            break;
+            
+        case 'sand':
+            ctx.fillStyle = '#E0C090';
+            ctx.fillRect(0, 0, 16, 16);
+            for (let i = 0; i < 30; i++) {
+                ctx.fillStyle = `rgba(${220 + Math.random() * 20}, ${190 + Math.random() * 20}, ${140 + Math.random() * 20}, 0.3)`;
+                ctx.fillRect(Math.floor(Math.random() * 16), Math.floor(Math.random() * 16), 1, 1);
+            }
+            break;
+            
+        case 'log_oak':
+            ctx.fillStyle = '#6B4423'; // 橡木树皮色
+            ctx.fillRect(0, 0, 16, 16);
+            // 树皮纹理 - 垂直条纹
+            for (let i = 0; i < 8; i++) {
+                const x = Math.floor(Math.random() * 15);
+                ctx.fillStyle = `rgba(${80 + Math.random() * 20}, ${50 + Math.random() * 15}, ${30 + Math.random() * 10}, 0.6)`;
+                ctx.fillRect(x, 0, 1 + Math.floor(Math.random() * 2), 16);
+            }
+            break;
+            
+        case 'log_oak_top':
+            ctx.fillStyle = '#B8956A'; // 木头色
+            ctx.fillRect(0, 0, 16, 16);
+            // 年轮
+            ctx.strokeStyle = 'rgba(100, 80, 60, 0.5)';
+            ctx.lineWidth = 1;
+            for (let r = 2; r < 9; r += 2) {
+                ctx.beginPath();
+                ctx.arc(8, 8, r, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+            // 裂纹
+            ctx.strokeStyle = 'rgba(80, 60, 40, 0.3)';
+            ctx.beginPath();
+            ctx.moveTo(8, 8);
+            ctx.lineTo(12, 4);
+            ctx.stroke();
+            break;
+            
+        case 'leaves_oak':
+            ctx.fillStyle = '#3A6B2E'; // 深绿色
+            ctx.fillRect(0, 0, 16, 16);
+            // 树叶纹理 - 随机绿色斑点
+            for (let i = 0; i < 50; i++) {
+                const shade = Math.random();
+                if (shade < 0.5) ctx.fillStyle = 'rgba(80, 160, 50, 0.5)';
+                else ctx.fillStyle = 'rgba(50, 100, 30, 0.4)';
+                ctx.fillRect(Math.floor(Math.random() * 14), Math.floor(Math.random() * 14), 2, 2);
+            }
+            break;
+            
+        case 'leaves_spruce':
+            ctx.fillStyle = '#2F4F2F'; // 云杉深绿色
+            ctx.fillRect(0, 0, 16, 16);
+            for (let i = 0; i < 40; i++) {
+                ctx.fillStyle = Math.random() > 0.5 ? 'rgba(60, 120, 60, 0.5)' : 'rgba(40, 80, 40, 0.4)';
+                ctx.fillRect(Math.floor(Math.random() * 14), Math.floor(Math.random() * 14), 2, 2);
+            }
+            break;
+            
+        case 'leaves_birch':
+            ctx.fillStyle = '#6B8E23'; // 白桦浅绿色
+            ctx.fillRect(0, 0, 16, 16);
+            for (let i = 0; i < 40; i++) {
+                ctx.fillStyle = Math.random() > 0.5 ? 'rgba(140, 200, 80, 0.4)' : 'rgba(100, 160, 50, 0.5)';
+                ctx.fillRect(Math.floor(Math.random() * 14), Math.floor(Math.random() * 14), 2, 2);
+            }
+            break;
+            
+        case 'leaves_jungle':
+            ctx.fillStyle = '#228B22'; // 丛林木绿色
+            ctx.fillRect(0, 0, 16, 16);
+            for (let i = 0; i < 45; i++) {
+                ctx.fillStyle = Math.random() > 0.5 ? 'rgba(70, 180, 70, 0.5)' : 'rgba(40, 140, 40, 0.4)';
+                ctx.fillRect(Math.floor(Math.random() * 14), Math.floor(Math.random() * 14), 2, 2);
+            }
+            break;
+            
+        case 'log_birch':
+            ctx.fillStyle = '#D4C5A9'; // 白桦木白色
+            ctx.fillRect(0, 0, 16, 16);
+            // 黑色斑点纹理
+            for (let i = 0; i < 10; i++) {
+                ctx.fillStyle = 'rgba(60, 60, 60, 0.4)';
+                const x = Math.floor(Math.random() * 14);
+                const y = Math.floor(Math.random() * 14);
+                ctx.fillRect(x, y, 2, 2);
+            }
+            break;
+            
+        case 'log_birch_top':
+            ctx.fillStyle = '#D4C5A9';
+            ctx.fillRect(0, 0, 16, 16);
+            ctx.strokeStyle = 'rgba(100, 100, 100, 0.4)';
+            ctx.lineWidth = 1;
+            for (let r = 2; r < 9; r += 2) {
+                ctx.beginPath();
+                ctx.arc(8, 8, r, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+            break;
+            
+        case 'log_jungle':
+            ctx.fillStyle = '#8B7355'; // 丛林木色
+            ctx.fillRect(0, 0, 16, 16);
+            // 更粗糙的树皮
+            for (let i = 0; i < 12; i++) {
+                ctx.fillStyle = `rgba(${100 + Math.random() * 20}, ${80 + Math.random() * 15}, ${50 + Math.random() * 10}, 0.5)`;
+                ctx.fillRect(Math.floor(Math.random() * 14), 0, 2, 16);
+            }
+            break;
+            
+        case 'log_jungle_top':
+            ctx.fillStyle = '#A08060';
+            ctx.fillRect(0, 0, 16, 16);
+            ctx.strokeStyle = 'rgba(100, 80, 60, 0.5)';
+            ctx.lineWidth = 1;
+            for (let r = 2; r < 9; r += 2) {
+                ctx.beginPath();
+                ctx.arc(8, 8, r, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+            break;
+            
+        case 'water_still':
+            ctx.fillStyle = '#3F76E4';
+            ctx.fillRect(0, 0, 16, 16);
+            for (let i = 0; i < 10; i++) {
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+                ctx.fillRect(Math.floor(Math.random() * 14), Math.floor(Math.random() * 16), 2, 1);
+            }
+            break;
+            
+        default:
+            console.warn('Unknown texture:', name);
+            ctx.fillStyle = '#FF00FF';
+            ctx.fillRect(0, 0, 16, 16);
+            ctx.fillStyle = '#000000';
+            ctx.font = '10px monospace';
+            ctx.fillText('?', 4, 12);
+    }
+    
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.magFilter = THREE.NearestFilter;
+    tex.minFilter = THREE.NearestFilter;
+    tex.needsUpdate = true;
+    return tex;
+}
+
+async function loadTexture(name) {
+    if (textureCache.has(name)) {
+        return textureCache.get(name);
+    }
+    
+    if (failedTextures.has(name)) {
+        const tex = createTexture(name);
+        textureCache.set(name, tex);
+        return tex;
+    }
+    
+    for (let i = 0; i < TEXTURE_SOURCES.length; i++) {
+        const baseUrl = TEXTURE_SOURCES[i];
+        try {
+            const tex = await tryLoadTextureFromUrl(baseUrl, name);
+            if (tex) {
+                textureCache.set(name, tex);
+                return tex;
+            }
+        } catch (e) {
+            console.warn(`Failed to load ${name} from ${baseUrl}`);
+        }
+    }
+    
+    failedTextures.add(name);
+    const fallback = createTexture(name);
+    textureCache.set(name, fallback);
+    return fallback;
+}
+
+function tryLoadTextureFromUrl(baseUrl, name) {
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        
+        const timeout = setTimeout(() => {
+            resolve(null);
+        }, 3000);
+        
+        img.onload = () => {
+            clearTimeout(timeout);
+            const tex = new THREE.Texture(img);
+            tex.magFilter = THREE.NearestFilter;
+            tex.minFilter = THREE.NearestFilter;
+            tex.needsUpdate = true;
+            resolve(tex);
+        };
+        
+        img.onerror = () => {
+            clearTimeout(timeout);
+            resolve(null);
+        };
+        
+        img.src = baseUrl + name + '.png';
+    });
+}
+
+// 方块定义 - 面顺序: 0=down(y-), 1=up(y+), 2=north(z-), 3=south(z+), 4=west(x-), 5=east(x+)
+const BlockDefs = {
+    0: { name: '空气', solid: false },
+    1: { name: '石头', tex: 'stone', color: 0x808080 },
+    2: { name: '草方块', faces: ['dirt', 'grass_top', 'grass_side', 'grass_side', 'grass_side', 'grass_side'] },
+    3: { name: '泥土', tex: 'dirt', color: 0x8B5A2B },
+    4: { name: '圆石', tex: 'cobblestone', color: 0x707070 },
+    5: { name: '橡木木板', tex: 'planks_oak', color: 0xC19A6B },
+    7: { name: '基岩', tex: 'bedrock', color: 0x333333 },
+    9: { name: '水', tex: 'water_still', transparent: true, solid: false, liquid: true, opacity: 0.7, color: 0x3F76E4 },
+    12: { name: '沙子', tex: 'sand', color: 0xE0C090 },
+    17: { name: '橡木原木', faces: ['log_oak_top', 'log_oak_top', 'log_oak', 'log_oak', 'log_oak', 'log_oak'] },
+    18: { name: '橡树树叶', tex: 'leaves_oak', transparent: true, color: 0x3A6B2E },
+    161: { name: '云杉树叶', tex: 'leaves_spruce', transparent: true, color: 0x2F4F2F },
+    162: { name: '白桦木原木', faces: ['log_birch_top', 'log_birch_top', 'log_birch', 'log_birch', 'log_birch', 'log_birch'] },
+    163: { name: '白桦树叶', tex: 'leaves_birch', transparent: true, color: 0x6B8E23 },
+    164: { name: '丛林木原木', faces: ['log_jungle_top', 'log_jungle_top', 'log_jungle', 'log_jungle', 'log_jungle', 'log_jungle'] },
+    165: { name: '丛林树叶', tex: 'leaves_jungle', transparent: true, color: 0x228B22 },
+};
+
+const Materials = [];
+const IsSolid = new Array(256).fill(true);
+const IsTransparent = new Array(256).fill(false);
+const IsLiquid = new Array(256).fill(false);
+
+async function initMaterials() {
+    const toLoad = new Set();
+    for (const [id, def] of Object.entries(BlockDefs)) {
+        if (def.tex) toLoad.add(def.tex);
+        if (def.faces) def.faces.forEach(f => toLoad.add(f));
+    }
+    totalTextures = toLoad.size;
+    updateProgress();
+    
+    const loadPromises = Array.from(toLoad).map(async (name) => {
+        const tex = await loadTexture(name);
+        loadedCount++;
+        updateProgress();
+        return { name, tex };
+    });
+    
+    await Promise.all(loadPromises);
+    
+    // 创建材质
+    for (let id = 0; id < 256; id++) {
+        const def = BlockDefs[id];
+        if (!def) {
+            Materials[id] = new THREE.MeshLambertMaterial({ color: 0xff00ff });
+            continue;
+        }
+        
+        if (def.solid === false) IsSolid[id] = false;
+        if (def.transparent) IsTransparent[id] = true;
+        if (def.liquid) IsLiquid[id] = true;
+        
+        try {
+            if (def.faces) {
+                Materials[id] = [];
+                for (let i = 0; i < 6; i++) {
+                    const texName = def.faces[i];
+                    const tex = textureCache.get(texName);
+                    const mat = new THREE.MeshLambertMaterial({
+                        map: tex,
+                        transparent: def.transparent || false,
+                        opacity: def.opacity || 1.0,
+                        side: def.transparent ? THREE.DoubleSide : THREE.FrontSide
+                    });
+                    Materials[id][i] = mat;
+                }
+            } else {
+                const tex = def.tex ? textureCache.get(def.tex) : null;
+                const mat = new THREE.MeshLambertMaterial({
+                    map: tex,
+                    transparent: def.transparent || false,
+                    side: def.transparent ? THREE.DoubleSide : THREE.FrontSide
+                });
+                Materials[id] = mat;
+            }
+        } catch(e) {
+            console.error('Error creating material for', id, e);
+            Materials[id] = new THREE.MeshLambertMaterial({ color: def.color || 0xff00ff });
+        }
+    }
+    
+    setTimeout(() => {
+        document.getElementById('loading').style.display = 'none';
+        initGame();
+    }, 500);
+}
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x87CEEB);
+scene.fog = new THREE.Fog(0x87CEEB, 30, 100);
+
+let renderer, camera;
+const chunks = new Map();
+const renderQueue = new Set();
+const CHUNK_SIZE = 16;
+const CHUNK_LOAD_RADIUS = 3;
+
+const noise = {
+    p: new Uint8Array(512),
+    init() {
+        for (let i = 0; i < 256; i++) this.p[i] = i;
+        for (let i = 255; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [this.p[i], this.p[j]] = [this.p[j], this.p[i]];
+        }
+        for (let i = 0; i < 256; i++) this.p[i+256] = this.p[i];
+    },
+    fade(t) { return t*t*t*(t*(t*6-15)+10); },
+    lerp(t,a,b) { return a+t*(b-a); },
+    grad(h,x,y) { const u = h<8?x:y, v = h<4?y:(h==12||h==14)?x:0; return ((h&1)?-u:u)+((h&2)?-v:v); },
+    noise(x,y,perm) {
+        const X = Math.floor(x)&255, Y = Math.floor(y)&255;
+        x -= Math.floor(x); y -= Math.floor(y);
+        const u = this.fade(x), v = this.fade(y);
+        const A = perm[X]+Y, B = perm[X+1]+Y;
+        return this.lerp(v, this.lerp(u, this.grad(perm[A],x,y), this.grad(perm[B],x-1,y)),
+                           this.lerp(u, this.grad(perm[A+1],x,y-1), this.grad(perm[B+1],x-1,y-1)));
+    },
+    height(x,z) { return (this.noise(x*0.02, z*0.02, this.p) + 0.5*this.noise(x*0.04, z*0.04, this.p)) * 16 + 64; }
+};
+noise.init();
+
+// 树木种类 - 保留苍白群系，添加普通绿色树木
+const TreeTypes = {
+    // 普通橡树 - 60%概率，绿色树叶
+    OAK: { 
+        log: 17, leaves: 18, 
+        trunkHeight: [4, 6], 
+        leafRadius: [2, 2],
+        leafHeight: [3, 4],
+        probability: 0.60
+    },
+    // 白桦 - 20%概率，浅绿色树叶
+    BIRCH: { 
+        log: 162, leaves: 163, 
+        trunkHeight: [5, 7], 
+        leafRadius: [2, 2],
+        leafHeight: [3, 4],
+        probability: 0.20
+    },
+    // 云杉 - 15%概率，深绿色树叶
+    SPRUCE: { 
+        log: 17, leaves: 161, 
+        trunkHeight: [6, 9], 
+        leafRadius: [1, 2],
+        leafHeight: [2, 3],
+        probability: 0.15
+    },
+    // 丛林木 - 4%概率，鲜绿色树叶
+    JUNGLE: { 
+        log: 164, leaves: 165, 
+        trunkHeight: [8, 12], 
+        leafRadius: [2, 3],
+        leafHeight: [4, 5],
+        probability: 0.04
+    },
+    // 苍白橡木 - 1%概率，苍白群系（浅色原木+普通树叶）
+    PALE_OAK: {
+        log: 162, // 使用白桦木原木（浅色）
+        leaves: 18, // 使用普通橡树树叶（绿色）
+        trunkHeight: [5, 8],
+        leafRadius: [2, 3],
+        leafHeight: [3, 5],
+        probability: 0.01,
+        isPale: true
+    }
+};
+
+class Chunk {
+    constructor(cx, cz) {
+        this.cx = cx;
+        this.cz = cz;
+        this.data = new Map();
+        this.mesh = null;
+        this.dirty = true;
+        this.generate();
+    }
+    
+    get(x,y,z) { return this.data.get(`${x},${y},${z}`) || 0; }
+    
+    set(x,y,z,id) {
+        const key = `${x},${y},${z}`;
+        if (id === 0) this.data.delete(key);
+        else this.data.set(key, id);
+        this.dirty = true;
+        renderQueue.add(this);
+    }
+    
+    generate() {
+        for (let x = 0; x < CHUNK_SIZE; x++) {
+            for (let z = 0; z < CHUNK_SIZE; z++) {
+                const wx = this.cx * CHUNK_SIZE + x;
+                const wz = this.cz * CHUNK_SIZE + z;
+                const h = Math.floor(noise.height(wx, wz));
+                
+                for (let y = 0; y <= h; y++) {
+                    let id = 1;
+                    if (y === h) id = 2;
+                    else if (y > h - 3) id = 3;
+                    if (y < 5) id = 7;
+                    this.data.set(`${x},${y},${z}`, id);
+                }
+                
+                // 树木生成 - 5%基础概率
+                if (h > 5 && Math.random() < 0.05) {
+                    const temp = Math.abs(noise.noise(wx*0.01, wz*0.01, noise.p));
+                    const humidity = noise.noise(wx*0.02 + 100, wz*0.02 + 100, noise.p);
+                    
+                    let selectedTree = null;
+                    const rand = Math.random();
+                    let cumulativeProb = 0;
+                    
+                    for (const [name, type] of Object.entries(TreeTypes)) {
+                        let adjustedProb = type.probability;
+                        
+                        if (temp < 0.3) {
+                            if (name === 'SPRUCE') adjustedProb *= 3;
+                            if (name === 'JUNGLE') adjustedProb *= 0;
+                        } else if (temp > 0.7) {
+                            if (name === 'JUNGLE') adjustedProb *= 3;
+                            if (name === 'SPRUCE') adjustedProb *= 0;
+                        }
+                        
+                        if (humidity > 0.5) {
+                            if (name === 'BIRCH') adjustedProb *= 1.5;
+                        }
+                        
+                        cumulativeProb += adjustedProb;
+                        if (rand < cumulativeProb) {
+                            selectedTree = type;
+                            break;
+                        }
+                    }
+                    
+                    if (!selectedTree) selectedTree = TreeTypes.OAK;
+                    this.generateTree(x, h + 1, z, selectedTree);
+                }
+            }
+        }
+    }
+    
+    generateTree(x, y, z, type) {
+        const trunkMin = type.trunkHeight[0];
+        const trunkMax = type.trunkHeight[1];
+        const trunkHeight = trunkMin + Math.floor(Math.random() * (trunkMax - trunkMin + 1));
+        
+        for (let i = 0; i < trunkHeight; i++) {
+            this.data.set(`${x},${y+i},${z}`, type.log);
+        }
+        
+        const leafStart = y + trunkHeight - 2;
+        const leafHeight = type.leafHeight[0] + Math.floor(Math.random() * (type.leafHeight[1] - type.leafHeight[0] + 1));
+        const maxRadius = type.leafRadius[1];
+        
+        for (let ly = 0; ly < leafHeight; ly++) {
+            const currentY = leafStart + ly;
+            let radius = maxRadius;
+            if (ly === leafHeight - 1) radius = 1;
+            
+            for (let lx = x - radius; lx <= x + radius; lx++) {
+                for (let lz = z - radius; lz <= z + radius; lz++) {
+                    if (lx === x && lz === z && currentY < y + trunkHeight - 1) continue;
+                    if (Math.random() < 0.15) continue;
+                    
+                    const dx = lx - x;
+                    const dz = lz - z;
+                    const dist = Math.sqrt(dx*dx + dz*dz);
+                    
+                    if (dist <= radius + 0.5) {
+                        if (lx >= 0 && lx < CHUNK_SIZE && lz >= 0 && lz < CHUNK_SIZE) {
+                            const existing = this.get(lx, currentY, lz);
+                            if (!IsSolid[existing] || existing === 0) {
+                                this.data.set(`${lx},${currentY},${lz}`, type.leaves);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    build() {
+        if (!this.dirty) return;
+        
+        if (this.mesh) {
+            if (Array.isArray(this.mesh)) {
+                this.mesh.forEach(m => {
+                    scene.remove(m);
+                    m.geometry.dispose();
+                });
+            } else {
+                scene.remove(this.mesh);
+                this.mesh.geometry.dispose();
+            }
+            this.mesh = null;
+        }
+        
+        if (this.data.size === 0) {
+            this.dirty = false;
+            return;
+        }
+        
+        // 面定义 - 顺序与 BlockDefs.faces 一致
+        // 0=down(y-), 1=up(y+), 2=north(z-), 3=south(z+), 4=west(x-), 5=east(x+)
+        const faceDefs = [
+            { dir: [0,-1,0], verts: [[0,0,0],[1,0,0],[1,0,1],[0,0,1]], normal: [0,-1,0] },
+            { dir: [0,1,0], verts: [[0,1,1],[1,1,1],[1,1,0],[0,1,0]], normal: [0,1,0] },
+            { dir: [0,0,-1], verts: [[1,0,0],[0,0,0],[0,1,0],[1,1,0]], normal: [0,0,-1] },
+            { dir: [0,0,1], verts: [[0,0,1],[1,0,1],[1,1,1],[0,1,1]], normal: [0,0,1] },
+            { dir: [-1,0,0], verts: [[0,0,0],[0,0,1],[0,1,1],[0,1,0]], normal: [-1,0,0] },
+            { dir: [1,0,0], verts: [[1,0,1],[1,0,0],[1,1,0],[1,1,1]], normal: [1,0,0] }
+        ];
+        
+        const matGroups = new Map();
+        
+        for (const [key, id] of this.data) {
+            if (!IsSolid[id]) continue;
+            
+            const [x, y, z] = key.split(',').map(Number);
+            const isMultiMat = Array.isArray(Materials[id]);
+            
+            for (let fi = 0; fi < 6; fi++) {
+                const face = faceDefs[fi];
+                const nx = x + face.dir[0];
+                const ny = y + face.dir[1];
+                const nz = z + face.dir[2];
+                
+                let neighborId;
+                if (nx >= 0 && nx < CHUNK_SIZE && nz >= 0 && nz < CHUNK_SIZE) {
+                    neighborId = this.get(nx, ny, nz);
+                } else {
+                    const ncx = this.cx + Math.floor(nx / CHUNK_SIZE);
+                    const ncz = this.cz + Math.floor(nz / CHUNK_SIZE);
+                    const nlx = ((nx % CHUNK_SIZE) + CHUNK_SIZE) % CHUNK_SIZE;
+                    const nlz = ((nz % CHUNK_SIZE) + CHUNK_SIZE) % CHUNK_SIZE;
+                    const neighbor = chunks.get(`${ncx},${ncz}`);
+                    neighborId = neighbor ? neighbor.get(nlx, ny, nlz) : 0;
+                }
+                
+                if (IsSolid[neighborId] && !IsTransparent[neighborId]) continue;
+                
+                let matKey;
+                if (isMultiMat) {
+                    matKey = `${id}_${fi}`;
+                } else {
+                    matKey = `${id}`;
+                }
+                
+                if (!matGroups.has(matKey)) {
+                    matGroups.set(matKey, {
+                        positions: [],
+                        normals: [],
+                        uvs: [],
+                        indices: [],
+                        index: 0,
+                        blockId: id,
+                        faceIndex: fi,
+                        isMultiMat: isMultiMat
+                    });
+                }
+                
+                const group = matGroups.get(matKey);
+                
+                for (let i = 0; i < 4; i++) {
+                    const v = face.verts[i];
+                    group.positions.push(v[0] + x, v[1] + y, v[2] + z);
+                    group.normals.push(...face.normal);
+                    const uvs = [[0,0], [1,0], [1,1], [0,1]];
+                    group.uvs.push(uvs[i][0], uvs[i][1]);
+                }
+                
+                const idx = group.index;
+                group.indices.push(idx, idx+1, idx+2, idx, idx+2, idx+3);
+                group.index += 4;
+            }
+        }
+        
+        if (matGroups.size === 0) {
+            this.dirty = false;
+            return;
+        }
+        
+        const meshes = [];
+        
+        for (const [matKey, group] of matGroups) {
+            if (group.positions.length === 0) continue;
+            
+            const geo = new THREE.BufferGeometry();
+            geo.setAttribute('position', new THREE.Float32BufferAttribute(group.positions, 3));
+            geo.setAttribute('normal', new THREE.Float32BufferAttribute(group.normals, 3));
+            geo.setAttribute('uv', new THREE.Float32BufferAttribute(group.uvs, 2));
+            geo.setIndex(group.indices);
+            
+            let mat;
+            if (group.isMultiMat) {
+                mat = Materials[group.blockId][group.faceIndex];
+            } else {
+                mat = Materials[group.blockId];
+            }
+            
+            if (!mat) mat = new THREE.MeshLambertMaterial({ color: 0xffffff });
+            
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.position.set(this.cx * CHUNK_SIZE, 0, this.cz * CHUNK_SIZE);
+            mesh.frustumCulled = true;
+            scene.add(mesh);
+            meshes.push(mesh);
+        }
+        
+        this.mesh = meshes.length === 1 ? meshes[0] : meshes;
+        this.dirty = false;
+    }
+    
+    unload() {
+        if (this.mesh) {
+            if (Array.isArray(this.mesh)) {
+                this.mesh.forEach(m => {
+                    scene.remove(m);
+                    m.geometry.dispose();
+                });
+            } else {
+                scene.remove(this.mesh);
+                this.mesh.geometry.dispose();
+            }
+        }
+        this.mesh = null;
+    }
+}
+
+function getBlock(x, y, z) {
+    const ix = Math.floor(x);
+    const iy = Math.floor(y);
+    const iz = Math.floor(z);
+    const cx = Math.floor(ix / CHUNK_SIZE);
+    const cz = Math.floor(iz / CHUNK_SIZE);
+    const chunk = chunks.get(`${cx},${cz}`);
+    if (!chunk) return 0;
+    const lx = ((ix % CHUNK_SIZE) + CHUNK_SIZE) % CHUNK_SIZE;
+    const lz = ((iz % CHUNK_SIZE) + CHUNK_SIZE) % CHUNK_SIZE;
+    return chunk.get(lx, iy, lz);
+}
+
+function setBlock(x, y, z, id) {
+    const ix = Math.floor(x);
+    const iy = Math.floor(y);
+    const iz = Math.floor(z);
+    const cx = Math.floor(ix / CHUNK_SIZE);
+    const cz = Math.floor(iz / CHUNK_SIZE);
+    const chunk = chunks.get(`${cx},${cz}`);
+    if (!chunk) return false;
+    const lx = ((ix % CHUNK_SIZE) + CHUNK_SIZE) % CHUNK_SIZE;
+    const lz = ((iz % CHUNK_SIZE) + CHUNK_SIZE) % CHUNK_SIZE;
+    chunk.set(lx, iy, lz, id);
+    return true;
+}
+
+const player = { x: 0, y: 80, z: 0, vx: 0, vy: 0, vz: 0, yaw: 0, pitch: -0.3, onGround: false, height: 1.8, eyeHeight: 1.6, spawned: false, mode: 'creative', width: 0.6, depth: 0.6 };
+const mobs = [];
+
+class Mob {
+    constructor(x, y, z, type) {
+        this.x = x; this.y = y; this.z = z;
+        this.type = type;
+        this.mesh = new THREE.Mesh(
+            new THREE.BoxGeometry(0.6, 0.6, 0.9),
+            new THREE.MeshLambertMaterial({ color: type === 'pig' ? 0xF09090 : 0xE0E0E0 })
+        );
+        this.mesh.position.set(x, y + 0.3, z);
+        scene.add(this.mesh);
+    }
+    update(dt) {
+        this.mesh.position.x = this.x;
+        this.mesh.position.y = this.y + 0.3;
+        this.mesh.position.z = this.z;
+        return true;
+    }
+}
+
+function spawnMob() {
+    const angle = Math.random() * Math.PI * 2;
+    const dist = 5 + Math.random() * 5;
+    const x = player.x + Math.sin(angle) * dist;
+    const z = player.z + Math.cos(angle) * dist;
+    let y = 80;
+    for (; y > 0; y--) if (IsSolid[getBlock(x, y, z)]) { y += 1; break; }
+    mobs.push(new Mob(x, y, z, 'pig'));
+}
+
+function checkCollision(x, y, z) {
+    const minX = Math.floor(x - player.width/2);
+    const maxX = Math.floor(x + player.width/2);
+    const minY = Math.floor(y);
+    const maxY = Math.floor(y + player.height);
+    const minZ = Math.floor(z - player.depth/2);
+    const maxZ = Math.floor(z + player.depth/2);
+    
+    for (let bx = minX; bx <= maxX; bx++) {
+        for (let by = minY; by <= maxY; by++) {
+            for (let bz = minZ; bz <= maxZ; bz++) {
+                if (IsSolid[getBlock(bx, by, bz)]) {
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
+function getGroundHeight(x, z) {
+    const minX = Math.floor(x - player.width/2);
+    const maxX = Math.floor(x + player.width/2);
+    const minZ = Math.floor(z - player.depth/2);
+    const maxZ = Math.floor(z + player.depth/2);
+    
+    let highestY = -100;
+    
+    for (let bx = minX; bx <= maxX; bx++) {
+        for (let bz = minZ; bz <= maxZ; bz++) {
+            for (let y = Math.floor(player.y + player.height); y >= 0; y--) {
+                if (IsSolid[getBlock(bx, y, bz)]) {
+                    highestY = Math.max(highestY, y + 1);
+                    break;
+                }
+            }
+        }
+    }
+    
+    return highestY === -100 ? 0 : highestY;
+}
+
+function updatePhysics(dt) {
+    if (!player.spawned) return;
+    
+    player.vy += -28 * dt;
+    
+    let newY = player.y + player.vy * dt;
+    
+    if (checkCollision(player.x, newY, player.z)) {
+        if (player.vy < 0) {
+            player.onGround = true;
+            player.vy = 0;
+            newY = getGroundHeight(player.x, player.z);
+        } else {
+            player.vy = 0;
+            newY = player.y;
+        }
+    } else {
+        player.onGround = false;
+    }
+    player.y = newY;
+}
+
+function movePlayer(dx, dz, speed) {
+    const cos = Math.cos(player.yaw);
+    const sin = Math.sin(player.yaw);
+    
+    const moveX = (cos * dx - sin * dz) * speed;
+    const moveZ = (sin * dx + cos * dz) * speed;
+    
+    let newX = player.x + moveX;
+    if (!checkCollision(newX, player.y, player.z)) {
+        player.x = newX;
+    }
+    
+    let newZ = player.z + moveZ;
+    if (!checkCollision(player.x, player.y, newZ)) {
+        player.z = newZ;
+    }
+}
+
+const joystick = { active: false, dx: 0, dy: 0 };
+
+function setupInput() {
+    const left = document.getElementById('left-stick');
+    const knob = document.getElementById('knob-left');
+    let tid = null;
+    
+    left.addEventListener('touchstart', e => {
+        e.preventDefault();
+        const t = e.changedTouches[0];
+        tid = t.identifier;
+        joystick.active = true;
+        updateJoy(t.clientX, t.clientY);
+    }, {passive: false});
+    
+    document.addEventListener('touchmove', e => {
+        for (let t of e.changedTouches) {
+            if (t.identifier === tid) updateJoy(t.clientX, t.clientY);
+        }
+    }, {passive: false});
+    
+    document.addEventListener('touchend', e => {
+        for (let t of e.changedTouches) {
+            if (t.identifier === tid) {
+                joystick.active = false;
+                joystick.dx = joystick.dy = 0;
+                knob.style.transform = 'translate(-50%,-50%)';
+                tid = null;
+            }
+        }
+    });
+    
+    function updateJoy(cx, cy) {
+        const rect = left.getBoundingClientRect();
+        const x = cx - (rect.left + rect.width/2);
+        const y = cy - (rect.top + rect.height/2);
+        const dist = Math.sqrt(x*x + y*y);
+        const max = 35;
+        const scl = dist > max ? max/dist : 1;
+        knob.style.transform = `translate(calc(-50% + ${x*scl}px), calc(-50% + ${y*scl}px))`;
+        joystick.dx = (x*scl)/max;
+        joystick.dy = (y*scl)/max;
+    }
+    
+    const right = document.getElementById('right-stick');
+    let rtid = null, rlx, rly;
+    right.addEventListener('touchstart', e => {
+        e.preventDefault();
+        const t = e.changedTouches[0];
+        rtid = t.identifier;
+        rlx = t.clientX; rly = t.clientY;
+    }, {passive: false});
+    
+    document.addEventListener('touchmove', e => {
+        for (let t of e.changedTouches) {
+            if (t.identifier === rtid) {
+                player.yaw -= (t.clientX - rlx) * 0.006;
+                player.pitch -= (t.clientY - rly) * 0.006;
+                player.pitch = Math.max(-Math.PI/2 + 0.1, Math.min(Math.PI/2 - 0.1, player.pitch));
+                rlx = t.clientX; rly = t.clientY;
+            }
+        }
+    }, {passive: false});
+    
+    document.addEventListener('touchend', e => {
+        for (let t of e.changedTouches) if (t.identifier === rtid) rtid = null;
+    });
+    
+    document.getElementById('btn-jump').addEventListener('touchstart', e => {
+        e.preventDefault();
+        if (player.onGround) { player.vy = 9; player.onGround = false; }
+    }, {passive: false});
+    
+    const ray = new THREE.Raycaster();
+    const center = new THREE.Vector2(0, 0);
+    
+    window.getRay = function() {
+        ray.setFromCamera(center, camera);
+        const hits = [];
+        chunks.forEach(c => {
+            if (Array.isArray(c.mesh)) {
+                c.mesh.forEach(m => hits.push(m));
+            } else if (c.mesh) {
+                hits.push(c.mesh);
+            }
+        });
+        const hit = ray.intersectObjects(hits)[0];
+        if (hit && hit.distance < 6) {
+            const p = hit.point;
+            const n = hit.face.normal;
+            const e = 0.001;
+            return {
+                break: { x: Math.floor(p.x - n.x*e), y: Math.floor(p.y - n.y*e), z: Math.floor(p.z - n.z*e) },
+                place: { x: Math.floor(p.x + n.x*e), y: Math.floor(p.y + n.y*e), z: Math.floor(p.z + n.z*e) }
+            };
+        }
+        return null;
+    };
+    
+    document.getElementById('btn-break').addEventListener('touchstart', e => {
+        e.preventDefault();
+        const r = window.getRay();
+        if (r) setBlock(r.break.x, r.break.y, r.break.z, 0);
+    }, {passive: false});
+    
+    document.getElementById('btn-place').addEventListener('touchstart', e => {
+        e.preventDefault();
+        const r = window.getRay();
+        if (r) setBlock(r.place.x, r.place.y, r.place.z, hotbar[selected]);
+    }, {passive: false});
+}
+
+const hotbar = [1, 2, 3, 4, 5, 17, 18, 12];
+let selected = 0;
+
+function updateHotbar() {
+    const hb = document.getElementById('hotbar');
+    hb.innerHTML = '';
+    hotbar.forEach((id, i) => {
+        const div = document.createElement('div');
+        div.className = 'slot ' + (i === selected ? 'active' : '');
+        div.style.background = ['#888','#808080','#5D8C3A','#8B4513','#A0A0A0','#8B7355','#4A3728','#E0C090'][id] || '#666';
+        div.onclick = () => { selected = i; updateHotbar(); };
+        hb.appendChild(div);
+    });
+}
+
+function toggleGameMode() {
+    player.mode = player.mode === 'creative' ? 'survival' : 'creative';
+    document.getElementById('mode-btn').textContent = player.mode;
+}
+
+function getPlayerChunk() {
+    return { x: Math.floor(player.x / CHUNK_SIZE), z: Math.floor(player.z / CHUNK_SIZE) };
+}
+
+function initGame() {
+    const canvas = document.getElementById('gl');
+    
+    renderer = new THREE.WebGLRenderer({ canvas, antialias: false });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    
+    camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 300);
+    camera.rotation.order = 'YXZ';
+    
+    const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+    scene.add(ambient);
+    const sun = new THREE.DirectionalLight(0xffffff, 0.8);
+    sun.position.set(50, 100, 50);
+    scene.add(sun);
+    
+    const hlGeo = new THREE.EdgesGeometry(new THREE.BoxGeometry(1.01, 1.01, 1.01));
+    const hlMat = new THREE.LineBasicMaterial({ color: 0xffffff });
+    const hl = new THREE.LineSegments(hlGeo, hlMat);
+    scene.add(hl);
+    window.hl = hl;
+    
+    for (let cx = -2; cx <= 2; cx++) {
+        for (let cz = -2; cz <= 2; cz++) {
+            const chunk = new Chunk(cx, cz);
+            chunks.set(`${cx},${cz}`, chunk);
+            chunk.build();
+        }
+    }
+    
+    for (let y = 100; y > 0; y--) {
+        if (IsSolid[getBlock(0, y, 0)]) {
+            player.y = y + 2;
+            player.spawned = true;
+            break;
+        }
+    }
+    
+    setupInput();
+    updateHotbar();
+    animate();
+}
+
+let lastTime = performance.now();
+let frames = 0;
+let lastFpsTime = performance.now();
+
+function animate() {
+    requestAnimationFrame(animate);
+    
+    const now = performance.now();
+    const dt = Math.min((now - lastTime) / 1000, 0.1);
+    lastTime = now;
+    
+    const pc = getPlayerChunk();
+    for (let dx = -CHUNK_LOAD_RADIUS; dx <= CHUNK_LOAD_RADIUS; dx++) {
+        for (let dz = -CHUNK_LOAD_RADIUS; dz <= CHUNK_LOAD_RADIUS; dz++) {
+            const dist = Math.sqrt(dx*dx + dz*dz);
+            if (dist > CHUNK_LOAD_RADIUS) continue;
+            const cx = pc.x + dx, cz = pc.z + dz;
+            const key = `${cx},${cz}`;
+            if (!chunks.has(key)) {
+                const chunk = new Chunk(cx, cz);
+                chunks.set(key, chunk);
+                chunk.build();
+            }
+        }
+    }
+    
+    for (const [key, chunk] of chunks) {
+        const [cx, cz] = key.split(',').map(Number);
+        const dist = Math.sqrt((cx - pc.x)**2 + (cz - pc.z)**2);
+        if (dist > CHUNK_LOAD_RADIUS + 2) {
+            chunk.unload();
+            chunks.delete(key);
+        }
+    }
+    
+    for (const chunk of renderQueue) {
+        chunk.build();
+    }
+    renderQueue.clear();
+    
+    updatePhysics(dt);
+    
+    if (joystick.active) {
+        const speed = 4.3 * dt;
+        const fwd = -joystick.dy;
+        const strafe = joystick.dx;
+        movePlayer(strafe, fwd, speed);
+    }
+    
+    camera.position.set(player.x, player.y + player.eyeHeight, player.z);
+    camera.rotation.set(player.pitch, player.yaw, 0, 'YXZ');
+    
+    const r = window.getRay ? window.getRay() : null;
+    if (r && window.hl) {
+        window.hl.position.set(r.break.x + 0.5, r.break.y + 0.5, r.break.z + 0.5);
+        window.hl.visible = true;
+    } else if (window.hl) {
+        window.hl.visible = false;
+    }
+    
+    renderer.render(scene, camera);
+    
+    frames++;
+    if (now - lastFpsTime > 1000) {
+        document.getElementById('d-fps').textContent = frames;
+        document.getElementById('d-xyz').textContent = `${player.x.toFixed(1)},${player.y.toFixed(1)},${player.z.toFixed(1)}`;
+        document.getElementById('s-chunk').textContent = chunks.size;
+        document.getElementById('s-mobs').textContent = mobs.length;
+        frames = 0;
+        lastFpsTime = now;
+    }
+}
+
+window.addEventListener('resize', () => {
+    if (camera && renderer) {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+});
+
+initMaterials();
+</script>
+</body>
+</html>
