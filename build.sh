@@ -24,7 +24,7 @@ gcc source.c -o see -lm -lcurl -lssh -D LIBSSH_VERSION_MAJOR=0 -D LIBSSH_VERSION
 cd ..
 echo "Build get(wget curl) command"
 cd get
-gcc source.c -o get -lm -lcurl -lssh -D LIBSSH_VERSION_MAJOR=0 -D LIBSSH_VERSION_MINOR=9 -lncurses -lbluetooth -Wall -O2
+gcc source1.c -o get -lm -lcurl -lssh -D LIBSSH_VERSION_MAJOR=0 -D LIBSSH_VERSION_MINOR=9 -lncurses -lbluetooth -Wall -O2
 cd ..
 echo "build think(mini echo) command"
 cd think
