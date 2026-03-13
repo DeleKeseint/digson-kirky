@@ -1,5 +1,5 @@
 timg Screenshot_2026_0220_173156.png
-echo "digson toolset 1.3/setup 1"
+echo "digson toolset 1.3/setup 2"
 echo "warning: If one of the compiles fails, the version is called Kirky version"
 echo "warning: All desktop environments in this toolset require a makefile to build applications(build command:cd status-nast && make)"
 echo "Build give(chmod) command"
@@ -40,7 +40,7 @@ gcc source.c -o eat -lm -lcurl -lssh -D LIBSSH_VERSION_MAJOR=0 -D LIBSSH_VERSION
 cd ..
 echo "Build setting command"
 cd setting
-gcc source2.c -o setting -lm -lcurl -lssh -D LIBSSH_VERSION_MAJOR=0 -D LIBSSH_VERSION_MINOR=9 -lncurses -lbluetooth -Wall -O2
+gcc source3.c -o setting -lm -lcurl -lssh -D LIBSSH_VERSION_MAJOR=0 -D LIBSSH_VERSION_MINOR=9 -lncurses -lbluetooth -Wall -O2
 cd ..
 echo "Build Notification command"
 cd Notification
@@ -49,3 +49,8 @@ gcc source.c -o notification -Wall -O2
 # 安装
 cp notification $PREFIX/bin/
 chmod +x $PREFIX/bin/notification
+
+echo "Build audio(c++) command"
+cd ..
+cd audio
+g++ source.cpp -o audio
