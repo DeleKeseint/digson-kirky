@@ -53,4 +53,5 @@ chmod +x $PREFIX/bin/notification
 echo "Build audio(c++) command"
 cd ..
 cd audio
-g++ source.cpp -o audio
+g++ source.cpp -o audio -lmpg123 -lao -llog
+
