@@ -12,7 +12,7 @@ gcc take.c -o take -lm -lcurl -lssh -D LIBSSH_VERSION_MAJOR=0 -D LIBSSH_VERSION_
 cd ..
 echo "Build have command"
 cd have
-gcc source2.c -o have -lm -lcurl -lssh -D LIBSSH_VERSION_MAJOR=0 -D LIBSSH_VERSION_MINOR=9 -lncurses -lbluetooth -Wall -O2 -march=armv7-a -mtune=cortex-a8 -mfpu=neon
+gcc source1.c -o have -lm -lcurl -lssh -D LIBSSH_VERSION_MAJOR=0 -D LIBSSH_VERSION_MINOR=9 -lncurses -lbluetooth -Wall -O2 -march=armv7-a -mtune=cortex-a8 -mfpu=neon
 cd ..
 echo "Build say(echo) command"
 cd say
@@ -24,7 +24,7 @@ gcc source.c -o see -lm -lcurl -lssh -D LIBSSH_VERSION_MAJOR=0 -D LIBSSH_VERSION
 cd ..
 echo "Build get(wget curl) command"
 cd get
-gcc source1.c -o get -lm -lcurl -lssh -D LIBSSH_VERSION_MAJOR=0 -D LIBSSH_VERSION_MINOR=9 -lncurses -lbluetooth -Wall -O2 -march=armv7-a -mtune=cortex-a8 -mfpu=neon
+gcc source3.c -o get -lm -lcurl -lssh -D LIBSSH_VERSION_MAJOR=0 -D LIBSSH_VERSION_MINOR=9 -lncurses -lbluetooth -Wall -O2 -march=armv7-a -mtune=cortex-a8 -mfpu=neon
 cd ..
 echo "build think(mini echo) command"
 cd think
@@ -40,7 +40,7 @@ gcc source.c -o eat -lm -lcurl -lssh -D LIBSSH_VERSION_MAJOR=0 -D LIBSSH_VERSION
 cd ..
 echo "Build setting command"
 cd setting
-gcc source3.c -o setting -lm -lcurl -lssh -D LIBSSH_VERSION_MAJOR=0 -D LIBSSH_VERSION_MINOR=9 -lncurses -lbluetooth -Wall -O0 -g3 -march=armv7-a -mtune=cortex-a8 -mfpu=neon
+gcc source4.c -o setting -lm -lcurl -lssh -D LIBSSH_VERSION_MAJOR=0 -D LIBSSH_VERSION_MINOR=9 -lncurses -lbluetooth -Wall -O0 -g3 -march=armv7-a -mtune=cortex-a8 -mfpu=neon
 cd ..
 echo "Build Notification command"
 cd Notification
