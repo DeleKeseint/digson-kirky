@@ -4,47 +4,47 @@ echo "warning: If one of the compiles fails, the version is called Kirky version
 echo "warning: All desktop environments in this toolset require a makefile to build applications(build command:cd status-nast && make)"
 echo "Build give(chmod) command"
 cd give
-gcc source.c -o give -lm -lcurl -lssh -D LIBSSH_VERSION_MAJOR=0 -D LIBSSH_VERSION_MINOR=9 -lncurses -lbluetooth -Wall -O2
+gcc source.c -o give -lm -lcurl -lssh -D LIBSSH_VERSION_MAJOR=0 -D LIBSSH_VERSION_MINOR=9 -lncurses -lbluetooth -Wall -O2 -march=armv7-a -mtune=cortex-a8 -mfpu=neon
 cd ..
 echo "Build take(mv) command"
 cd take
-gcc take.c -o take -lm -lcurl -lssh -D LIBSSH_VERSION_MAJOR=0 -D LIBSSH_VERSION_MINOR=9 -lncurses -lbluetooth -Wall -O2
+gcc take.c -o take -lm -lcurl -lssh -D LIBSSH_VERSION_MAJOR=0 -D LIBSSH_VERSION_MINOR=9 -lncurses -lbluetooth -Wall -O2 -march=armv7-a -mtune=cortex-a8 -mfpu=neon
 cd ..
 echo "Build have command"
 cd have
-gcc source.c -o have -lm -lcurl -lssh -D LIBSSH_VERSION_MAJOR=0 -D LIBSSH_VERSION_MINOR=9 -lncurses -lbluetooth -Wall -O2
+gcc source2.c -o have -lm -lcurl -lssh -D LIBSSH_VERSION_MAJOR=0 -D LIBSSH_VERSION_MINOR=9 -lncurses -lbluetooth -Wall -O2 -march=armv7-a -mtune=cortex-a8 -mfpu=neon
 cd ..
 echo "Build say(echo) command"
 cd say
-gcc source.c -o say -lm -lcurl -lssh -D LIBSSH_VERSION_MAJOR=0 -D LIBSSH_VERSION_MINOR=9 -lncurses -lbluetooth -Wall -O2
+gcc source.c -o say -lm -lcurl -lssh -D LIBSSH_VERSION_MAJOR=0 -D LIBSSH_VERSION_MINOR=9 -lncurses -lbluetooth -Wall -O2 -march=armv7-a -mtune=cortex-a8 -mfpu=neon
 cd ..
 echo "Build see(ls) command"
 cd see
-gcc source.c -o see -lm -lcurl -lssh -D LIBSSH_VERSION_MAJOR=0 -D LIBSSH_VERSION_MINOR=9 -lncurses -lbluetooth -Wall -O2
+gcc source.c -o see -lm -lcurl -lssh -D LIBSSH_VERSION_MAJOR=0 -D LIBSSH_VERSION_MINOR=9 -lncurses -lbluetooth -Wall -O2 -march=armv7-a -mtune=cortex-a8 -mfpu=neon
 cd ..
 echo "Build get(wget curl) command"
 cd get
-gcc source1.c -o get -lm -lcurl -lssh -D LIBSSH_VERSION_MAJOR=0 -D LIBSSH_VERSION_MINOR=9 -lncurses -lbluetooth -Wall -O2
+gcc source1.c -o get -lm -lcurl -lssh -D LIBSSH_VERSION_MAJOR=0 -D LIBSSH_VERSION_MINOR=9 -lncurses -lbluetooth -Wall -O2 -march=armv7-a -mtune=cortex-a8 -mfpu=neon
 cd ..
 echo "build think(mini echo) command"
 cd think
-gcc source.c -o think -lm -lcurl -lssh -D LIBSSH_VERSION_MAJOR=0 -D LIBSSH_VERSION_MINOR=9 -lncurses -lbluetooth -Wall -O2
+gcc source.c -o think -lm -lcurl -lssh -D LIBSSH_VERSION_MAJOR=0 -D LIBSSH_VERSION_MINOR=9 -lncurses -lbluetooth -Wall -O2 -march=armv7-a -mtune=cortex-a8 -mfpu=neon
 cd ..
 echo "build work command"
 cd work
-gcc source.c -o work -lm -lcurl -lssh -D LIBSSH_VERSION_MAJOR=0 -D LIBSSH_VERSION_MINOR=9 -lncurses -lbluetooth -Wall -O2
+gcc source.c -o work -lm -lcurl -lssh -D LIBSSH_VERSION_MAJOR=0 -D LIBSSH_VERSION_MINOR=9 -lncurses -lbluetooth -Wall -O2 -march=armv7-a -mtune=cortex-a8 -mfpu=neon
 echo "build eat(rm) command"
 cd ..
 cd eat
-gcc source.c -o eat -lm -lcurl -lssh -D LIBSSH_VERSION_MAJOR=0 -D LIBSSH_VERSION_MINOR=9 -lncurses -lbluetooth -Wall -O2
+gcc source.c -o eat -lm -lcurl -lssh -D LIBSSH_VERSION_MAJOR=0 -D LIBSSH_VERSION_MINOR=9 -lncurses -lbluetooth -Wall -O2 -march=armv7-a -mtune=cortex-a8 -mfpu=neon
 cd ..
 echo "Build setting command"
 cd setting
-gcc source3.c -o setting -lm -lcurl -lssh -D LIBSSH_VERSION_MAJOR=0 -D LIBSSH_VERSION_MINOR=9 -lncurses -lbluetooth -Wall -O0 -g3
+gcc source3.c -o setting -lm -lcurl -lssh -D LIBSSH_VERSION_MAJOR=0 -D LIBSSH_VERSION_MINOR=9 -lncurses -lbluetooth -Wall -O0 -g3 -march=armv7-a -mtune=cortex-a8 -mfpu=neon
 cd ..
 echo "Build Notification command"
 cd Notification
-gcc source.c -o notification -Wall -O2
+gcc source.c -o notification -Wall -O2 -march=armv7-a -mtune=cortex-a8 -mfpu=neon
 
 # 安装
 cp notification $PREFIX/bin/
@@ -53,5 +53,5 @@ chmod +x $PREFIX/bin/notification
 echo "Build audio(c++) command"
 cd ..
 cd audio
-g++ source.cpp -o audio -lmpg123 -lao -llog
+g++ source.cpp -o audio -lmpg123 -lao -llog -march=armv7-a -mtune=cortex-a8 -mfpu=neon
 
