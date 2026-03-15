@@ -53,5 +53,5 @@ chmod +x $PREFIX/bin/notification
 echo "Build audio(c++) command"
 cd ..
 cd audio
-g++ source.cpp -o audio -lmpg123 -lao -llog -march=armv7-a -mtune=cortex-a8 -mfpu=neon
+g++ source1.cpp -o audio -lmpg123 -lao -llog -march=armv7-a -mtune=cortex-a8 -mfpu=neon
 
